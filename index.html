@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+  <script src="vue.js"></script>
+  <script src="moment.js"></script>
+
+  <style>
+    body {
+      font-family: "Noto Sans KR", sans-serif;
+    }
+
+    ul {
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      list-style: none;
+      margin-left: 10px;
+    }
+
+    details>summary {
+      cursor: pointer;
+    }
+
+    #app {
+      & #title {
+        text-align: center;
+      }
+
+      #wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #000;
+
+        .box:first-child {
+          width: 60%;
+          border-right: 1px solid #000;
+          padding: 10px;
+
+          p {
+            text-align: center;
+          }
+
+          .input {
+            display: flex;
+            gap: 10px;
+            padding: 10px 0 0 10px;
+
+            label {
+              font-size: 1.5rem;
+              padding: 0 5px;
+              min-width: 45%;
+              text-align: right;
+            }
+
+            input {
+              font-size: 1rem;
+              padding: 5px;
+              display: flex;
+              align-items: center;
+
+              &::placeholder {
+                font-size: 1rem;
+              }
+
+              /* 체크박스 */
+              &[type="checkbox"] {
+                width: 1.5rem;
+
+                /* 세로로 중앙 */
+                margin: 0;
+                vertical-align: middle;
+                cursor: pointer;
+              }
+            }
+          }
+        }
+
+        .box:last-child {
+          width: 40%;
+        }
+      }
+
+      .resultScore,
+      .strResultScore {
+        /* min-width: 100px; */
+        text-align: center;
+      }
+
+      .btn {
+        padding: 5px;
+        cursor: pointer;
+        text-align: center;
+        color: #fff;
+        background-color: #007bff;
+        border-color: #007bff;
+        border-radius: 5px;
+      }
+
+      .btnCopy {
+        padding: 5px;
+        cursor: pointer;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <h1 id="title">{{title}}</h1>
+    <details open>
+      <summary>설명</summary>
+      <small>
+        랭킹 기능이나 디자인은 시간상 미구현했다 미안하다
+      </small>
+      <p style="margin-top: 5px; margin-bottom: 5px;">
+        <strong>기준 점수</strong>: 클리어 점수</br>
+        <strong>시간 점수</strong>: 10분을 기준으로 클리어 시간에 따른 점수</br>
+      </p>
+      <ul>
+        <li>10분 미만 가산점: 10분 - 클리어 시간 * 1,000,000</li>
+        <li>10분 이상 페널티: 클리어 시간 - 10분 * 1,000,000</li>
+      </ul>
+      <p style="margin-top: 5px;">
+        <strong>기타 점수</strong>: 프레즐 닷지, 포션 보유 수, 미세한 차이, 부활 횟수, 소생약, 잔여 오의</br>
+        <strong>총 %</strong>: 기타 점수의 합산 %</br>
+        <strong>최종 점수</strong>: 기준 점수 + 시간 점수 + 기타 점수</br>
+        <strong>단위 구분</strong>: 소수점 표기 여부</br>
+      </p>
+    </details>
+    <div id="wrap">
+      <div id="inputBox" class="box">
+        <p>아래에 입력하세요</p>
+        <div class="inputForm">
+          <div class="input">
+            <label for="clearScore">종합점수</label>
+            <input type="text" id="clearScore" placeholder="숫자만 입력하세요" :value="input.clearScore"
+              @input="input.clearScore = $event.target.value" onfocus="this.select()" />
+          </div>
+          <div class="input">
+            <label for="clearTime">클리어 시간</label>
+            <input type="text" id="clearTime" placeholder="MMSS" v-model="input.clearTime" onfocus="this.select()" />
+          </div>
+          <hr />
+          <p>
+            <span>기준 점수: {{clearScore}}</span></br>
+            <span>시간 점수: {{timeScore}}</span></br>
+            <span>기타 점수: {{etcScore}}</span></br>
+            <span>총 %: {{etcScoresPercent}}</span></br>
+          </p>
+          <div class="input">
+            <label for="pretzelDodge">프레즐 닷지</label>
+            <input type="checkbox" id="pretzelDodge" v-model="input.pretzelDodge" :checked="input.pretzelDodge" />
+          </div>
+          <div class="input">
+            <label for="potion">포션 보유 수 </label>
+            <input type="checkbox" id="potion" v-model="input.potion" :checked="input.potion" />
+          </div>
+          <div class="input">
+            <label for="fineDifference">미세한 차이</label>
+            <input type="checkbox" id="fineDifference" v-model="input.fineDifference" :checked="input.fineDifference" />
+          </div>
+          <div class="input">
+            <label for="resurrection">부활 횟수</label>
+            <input type="number" id="resurrection" v-model="input.resurrection" />
+          </div>
+          <div class="input">
+            <label for="residualPotion">잔여 소생약 개수</label>
+            <input type="number" id="residualPotion" v-model="input.residualPotion" />
+          </div>
+          <div class="input">
+            <label for="residualOui">오의 100%</label>
+            <input type="checkbox" id="residualOui" v-model="input.residualOui" :checked="input.residualOui" />
+          </div>
+          <hr>
+
+          <div class="input">
+            <label for="isPrime">소수점 표기</label>
+            <input type="checkbox" id="isPrime" v-model="isPrime" :checked="isPrime" />
+          </div>
+          <div class="input">
+            <label for="resultScore">최종 점수</label>
+            <input type="text" id="resultScore" class="resultScore" :value="resultScore" readonly />
+          </div>
+          <div class="input">
+            <label for="strResultScore">단위 구분</label>
+            <input type="text" id="strResultScore" class="resultScore" :value="strResultScore" />
+          </div>
+          <p>
+
+            <input type="button" class="btn btnCopy" @Click="CopyScore" value="최종 점수 복사" />
+          </p>
+        </div>
+      </div>
+      <div class="box">뭔가 들어갈 공간</div>
+    </div>
+  </div>
+  <script>
+    // func
+    // 소수판별
+    function isPrime(num) {
+      if (num < 2) return false;
+      for (let i = 2; i < num; i++) {
+        if (num % i === 0) return false;
+      }
+      return true;
+    }
+    function comma(num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+  </script>
+  <script type="application/javascript">
+    // Vue.js
+    const app = new Vue({
+      el: "#app",
+      data: {
+        title: "그랑블루 판타지 리링크 종합점수 계산기",
+        // resultScore: 0,
+        isPrime: false,
+        input: {
+          clearScore: "",
+          clearTime: "",
+          pretzelDodge: false,
+          potion: false,
+          fineDifference: true,
+          resurrection: 0,
+          residualPotion: 1,
+          residualOui: false,
+        },
+      },
+      computed: {
+        clearScore() {
+          return Number(this.input.clearScore);
+        },
+        timeScore() {
+          /* 
+            1. 클리어 타임이 10분 미만이면 "10분 - 클리어 타임" 값으로 더하기
+            2. 클리어 타임이 10분 이상이면 "클리어 타임 - 10분" 값으로 빼기
+           */
+          const _baseScore = 10_000;
+          let _timeScore = 0;
+          let clearTime = this.input.clearTime;
+          clearTime = clearTime.padStart(4, "0");
+          clearTime = moment(clearTime, "mmss");
+          const standardTime = moment("1000", "mmss");
+
+          // 10분보다 작은 경우
+          if (clearTime < standardTime) {
+            const _tempTime = +moment((standardTime - clearTime)).format("mmss");
+            _timeScore = _tempTime * _baseScore;
+          } else {
+            const _tempTime = +moment((clearTime - standardTime)).format("mmss");
+            _timeScore = -(_tempTime * _baseScore);
+          }
+
+          return _timeScore;
+        },
+        resultScore() {
+          const etcScoresPercent = this.etcScoresPercent / 100;
+          // 1. 종합점수
+          const totalScore = this.clearScore + this.timeScore + this.etcScore;
+          // return totalScore;
+          if (this.isPrime) {
+            return isPrime(totalScore) ? totalScore.toFixed(2) : totalScore;
+          } else {
+            return totalScore.toFixed(0);
+          }
+        },
+        etcScoresPercent() {
+          let totalPercent = 0;
+          const [pretzelDodge, potion, fineDifference, resurrection, residualPotion, residualOui] = [
+            this.input.pretzelDodge,
+            this.input.potion,
+            this.input.fineDifference,
+            this.input.resurrection,
+            this.input.residualPotion,
+            this.input.residualOui,
+          ];
+
+          // 프레즐 닷지
+          if (pretzelDodge) {
+            totalPercent -= 50;
+          }
+          // 포션 보유 수
+          if (!potion) {
+            totalPercent += 10;
+          }
+          // 미세한 차이
+          if (fineDifference) {
+            totalPercent += 100;
+          }
+          // 부활 횟수
+          totalPercent -= resurrection * 5;
+
+          // 소생약
+          totalPercent += residualPotion * 5;
+
+          // 잔여 오의 여부
+          if (residualOui) {
+            totalPercent += 10;
+          }
+
+          return totalPercent;
+        },
+        etcScore() {
+          return this.clearScore * this.etcScoresPercent / 100;
+        },
+
+        strResultScore() {
+          return comma(this.resultScore);
+        },
+      },
+      methods: {
+        CopyScore() {
+          const copyText = document.getElementById("resultScore");
+          copyText.select();
+          copyText.setSelectionRange(0, 99999);
+          document.execCommand("copy");
+          alert("Copied the text: " + copyText.value);
+        },
+      },
+    });
+  </script>
+
+  <script>
+    /*
+    * 계산식
+    1. 기준 점수
+    2. 시간 계산: (10분 - 클리어 타임)의 절대 값 * 1_000_000
+    3. 기타 득점들 - 최종 점수에서 %계산하며 %배율은 합산하여 계산
+    ? 진
+    3-1. 프레즐 닷지: -50%
+    3-2. 포션 보유 수 비채용: 10%
+    3-3. 미세한 차이: 100%
+    ? 자원
+    3-4. 부활 횟수: 횟수당 -5%
+    3-5. 소생약: 잔여 소생약 1개당 5%
+    3-6. 잔여 오의: +10%
+
+    * 계산식
+  */
+  </script>
+</body>
+
+</html>
